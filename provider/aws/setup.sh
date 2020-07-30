@@ -43,6 +43,8 @@ sysctl vm.swappiness=10
 
 echo "vm.swappiness = 10" >> /etc/sysctl.conf
 
+yum install -y epel-release
+
 ###########################################################################################################
 ## Install Postgresql repo for Redhat
 ###########################################################################################################
@@ -122,7 +124,7 @@ systemctl restart chronyd
 # change dir to install python3.6 from repo script
 cd ~
 
-#git clone https://github.com/tlepple/py36.git
+git clone https://github.com/tlepple/py36.git
 
 cd ~/py36
 
@@ -132,11 +134,11 @@ cd ~/py36
 cd ~/datagen_postgres/provider/aws
 
 # install needed python packages
-python3 -m pip install uuid
-python3 -m pip install kafka-python
-python3 -m pip install simplejson
-python3 -m pip install faker
-python3 -m pip install boto3
+python3.6 -m pip install uuid
+python3.6 -m pip install kafka-python
+python3.6 -m pip install simplejson
+python3.6 -m pip install faker
+python3.6 -m pip install boto3
 
 #########################################################################################
 #########################################################################################
