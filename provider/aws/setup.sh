@@ -117,28 +117,34 @@ echo "setup clock offset issues for aws"
 echo "server 169.254.169.123 prefer iburst minpoll 4 maxpoll 4" >> /etc/chrony.conf
 systemctl restart chronyd
 
+
 #########################################################################################
-# python3 items
 #########################################################################################
 
-# change dir to install python3.6 from repo script
-cd ~
+#########################################################################################
+#########################################################################################
+yum install -y pgadmin4
 
-git clone https://github.com/tlepple/py36.git
+# ensure things start on boot
+systemctl start httpd &&  systemctl enable httpd
 
-cd ~/py36
+cp /etc/httpd/conf.d/pgadmin4.conf.sample /etc/httpd/conf.d/pgadmin4.conf
 
-./setup.sh
-
-# change to this dir again
-cd ~/datagen_postgres/provider/aws
+# create directories:
+mkdir -p /var/lib/pgadmin4/ /var/log/pgadmin4/
+chown -R apache:apache /var/log/pgadmin4
+chown -R apache:apache /var/lib/pgadmin4
+#########################################################################################
+#########################################################################################
 
 # install needed python packages
-python3.6 -m pip install uuid
-python3.6 -m pip install kafka-python
-python3.6 -m pip install simplejson
-python3.6 -m pip install faker
-python3.6 -m pip install boto3
+python3 -m pip install uuid
+python3 -m pip install kafka-python
+python3 -m pip install simplejson
+python3 -m pip install faker
+python3 -m pip install boto3
+
+pip3 install psycopg2-binary
 
 #########################################################################################
 #########################################################################################
@@ -251,56 +257,90 @@ with open(fname, 'w', newline='') as csvfile:
                 writer.writerow(person)
 csvfile.close()
 #Upload to S3
-s3.meta.client.upload_file(fname, bucket_name, s3bucket_location)
+#s3.meta.client.upload_file(fname, bucket_name, s3bucket_location)
 # move the file to a nifi in directory
-#shutil.move(fname,dest)
+shutil.move(fname,dest)
 EOF
 
 ##################################################################################
 #  create python script to send data to kafka script
 ##################################################################################
-cat <<EOF > ~/datagen/kafka_dg.py
-import time
+cat <<EOF > ~/datagen/pg_upsert_dg.py
+############################################
+# file contents:
+############################################
+
+from __future__ import print_function
 from faker import Faker
 from datagenerator import DataGenerator
 import simplejson
 import sys
-from kafka import KafkaProducer
+import psycopg2
+
 #########################################################################################
-#       Define variables
+#	Define variables
 #########################################################################################
 dg = DataGenerator()
 fake = Faker() # <--- Don't Forgot this
 startKey = int(sys.argv[1])
 iterateVal = int(sys.argv[2])
-producer = KafkaProducer(api_version=(2, 0, 1),bootstrap_servers=[${KAFKA_BROKERS}],security_protocol='SASL_SSL',sasl_mechanism='PLAIN',sasl_plain_username='${CDP_ENV_USER}',sasl_plain_password='${CDP_ENV_PWD}',ssl_cafile='/var/lib/cloudera-scm-agent/agent-cert/cm-auto-global_cacerts.pem',value_serializer=lambda v: simplejson.dumps(v, default=myconverter).encode('utf-8'))
- 
+
 # functions to display errors
+def printf (format,*args):
+	sys.stdout.write (format % args)
+
+def printException (exception):
+	error, = exception.args
+	printf("Error code = %s\n",error.code);
+	printf("Error message = %s\n",error.message);
+
 def myconverter(obj):
-        if isinstance(obj, (datetime.datetime)):
-                return obj.__str__()
+	if isinstance(obj, (datetime.datetime)):
+		return obj.__str__()
 #########################################################################################
-#       Code execution below
+#	Code execution below
 #########################################################################################
-# While loop
-while(True):
+
+try:
+    try:
+        conn = psycopg2.connect(host="54.220.169.132",database="datagen", user="datagen", password="supersecret1")
+        print("Connection Established")
+
+    except psycopg2.Error as exception:
+        printf ('Failed to connect to database')
+        printException (exception)
+        exit (1)
+
+    cursor = conn.cursor()
+
+    try:
         fpg = dg.fake_person_generator(startKey, iterateVal, fake)
         for person in fpg:
-                print(simplejson.dumps(person, ensure_ascii=False, default = myconverter))
-                producer.send('dgCustomer', person)
-        producer.flush()
-        print("Customer Done.")
-        print('\n')
-        txn = dg.fake_txn_generator(startKey, iterateVal, fake)
-        for tranx in txn:
-                print(tranx)
-                producer.send('dgTxn', tranx)
-        producer.flush()
-        print("Transaction Done.")
-        print('\n')
-# increment and sleep
-        startKey += iterateVal
-        time.sleep(3)
+#            print(simplejson.dumps(person, ensure_ascii=False, default = myconverter))
+            json_out = simplejson.dumps(person, ensure_ascii=False, default = myconverter)
+            print(json_out)
+            insert_stmt = "SELECT datagen.insert_from_json('" + json_out +"');"
+
+            cursor.execute(insert_stmt)
+        print("Records inserted successfully")
+
+    except psycopg2.Error as exception:
+        printf ('Failed to insert\n')
+        printException (exception)
+        exit (1)
+
+    finally:
+        if(conn):
+            conn.commit()
+            cursor.close()
+            conn.close()
+            print("PostgreSQL connection is closed")
+
+except (Exception, psycopg2.Error) as error:
+    print("Something else went wrong...\n", error)
+
+finally:
+    print("script complete!")
 EOF
 ##################################################################################
 ##################################################################################
