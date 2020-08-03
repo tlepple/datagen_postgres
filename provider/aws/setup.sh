@@ -128,12 +128,40 @@ yum install -y pgadmin4
 # ensure things start on boot
 systemctl start httpd &&  systemctl enable httpd
 
-cp /etc/httpd/conf.d/pgadmin4.conf.sample /etc/httpd/conf.d/pgadmin4.conf
+#cp /etc/httpd/conf.d/pgadmin4.conf.sample /etc/httpd/conf.d/pgadmin4.conf
+cat <<EOF > /etc/httpd/conf.d/pgadmin4.conf
+<VirtualHost *:80>
+LoadModule wsgi_module modules/pgadmin4-python3-mod_wsgi.so
+WSGIDaemonProcess pgadmin processes=1 threads=25
+WSGIScriptAlias /pgadmin4 /usr/lib/python3.6/site-packages/pgadmin4-web/pgAdmin4.wsgi
+
+<Directory /usr/lib/python3.6/site-packages/pgadmin4-web/>
+        WSGIProcessGroup pgadmin
+        WSGIApplicationGroup %{GLOBAL}
+        <IfModule mod_authz_core.c>
+                # Apache 2.4
+                Require all granted
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+                # Apache 2.2
+                Order Deny,Allow
+                Deny from All
+                Allow from 127.0.0.1, 205.201.98.48, 173.3.101.154, 54.220.169.132
+                Allow from ::1
+        </IfModule>
+</Directory>
+</VirtualHost>
+EOF
+
 
 # create directories:
 mkdir -p /var/lib/pgadmin4/ /var/log/pgadmin4/
 chown -R apache:apache /var/log/pgadmin4
 chown -R apache:apache /var/lib/pgadmin4
+
+# restart webserver
+systemctl restart httpd
+
 #########################################################################################
 #########################################################################################
 
@@ -155,7 +183,8 @@ pip3 install psycopg2-binary
 mkdir -p ~/datagen
 cd ~/datagen
 
-te python data generator files
+#########################################################################################
+# python data generator files
 #########################################################################################
 cat <<EOF > ~/datagen/datagenerator.py
 import time 
@@ -263,7 +292,7 @@ shutil.move(fname,dest)
 EOF
 
 ##################################################################################
-#  create python script to send data to kafka script
+#  create python script to send data to postgres script
 ##################################################################################
 cat <<EOF > ~/datagen/pg_upsert_dg.py
 ############################################
