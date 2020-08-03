@@ -23,6 +23,9 @@ PG_HOME_DIR="/var/lib/pgsql/9.6"
 #LOCAL_TIMEZONE="America/New_York"
 LOCAL_TIMEZONE="America/Chicago"
 
+PRIVATE_IP=`ip route get 1 | awk '{print $NF;exit}'`
+PUBLIC_IP=`curl https://api.ipify.org/`
+
 ###########################################################################################################
 #  Setup some prereqs
 ###########################################################################################################
@@ -149,7 +152,7 @@ WSGIScriptAlias /pgadmin4 /usr/lib/python3.6/site-packages/pgadmin4-web/pgAdmin4
                 # Apache 2.2
                 Order Deny,Allow
                 Deny from All
-                Allow from 127.0.0.1, 205.201.98.48, 173.3.101.154, 54.220.169.132
+                Allow from 127.0.0.1, 205.201.98.48, 173.3.101.154, ${PUBLIC_IP}, ${PRIVATE_IP}
                 Allow from ::1
         </IfModule>
 </Directory>
@@ -353,7 +356,7 @@ def myconverter(obj):
 
 try:
     try:
-        conn = psycopg2.connect(host="54.220.169.132",database="datagen", user="datagen", password="supersecret1")
+        conn = psycopg2.connect(host="${PRIVATE_IP}",database="datagen", user="datagen", password="supersecret1")
         print("Connection Established")
 
     except psycopg2.Error as exception:
