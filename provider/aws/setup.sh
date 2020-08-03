@@ -115,7 +115,15 @@ EOF
 ###########################################################################################################
 sudo -u postgres psql < ~/create_ddl_c703.sql
 
+# create directory and run script
+mkdir -p /tmp/datagen
+cp /root/datagen_postgres/provider/aws/datagen_items.sql /tmp/datagen/
+chmod 777 -R /tmp/datagen/
+cd /tmp/datagen
+sudo -u postgres psql -d datagen -f /tmp/datagen/datagen_items.sql
 
+#change back to the diretory
+cd /root/datagen_postgres/provider/aws/
 ###########################################################################################################
 #time issues for clock offset in aws	
 ###########################################################################################################
