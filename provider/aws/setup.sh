@@ -155,7 +155,11 @@ WSGIScriptAlias /pgadmin4 /usr/lib/python3.6/site-packages/pgadmin4-web/pgAdmin4
 </Directory>
 </VirtualHost>
 EOF
-
+# Add some variables to config_distro.py
+echo "SQLITE_PATH = '/var/lib/pgadmin4/pgadmin4.db'" >> /usr/lib/python3.6/site-packages/pgadmin4-web/config_distro.py
+echo "SESSION_DB_PATH = '/var/lib/pgadmin4/sessions'" >> /usr/lib/python3.6/site-packages/pgadmin4-web/config_distro.py
+echo "STORAGE_DIR = '/var/lib/pgadmin4/storage'" >> /usr/lib/python3.6/site-packages/pgadmin4-web/config_distro.py
+echo "LOG_FILE = '/var/log/pgadmin4/pgadmin4.log'" >> /usr/lib/python3.6/site-packages/pgadmin4-web/config_distro.py
 
 # create directories:
 mkdir -p /var/lib/pgadmin4/ /var/log/pgadmin4/
@@ -169,6 +173,9 @@ systemctl restart httpd
 chown -R apache:apache /var/log/pgadmin4
 chown -R apache:apache /var/lib/pgadmin4
 
+#add postgres to path
+sed -i '/^PATH=/ s/$/:\/usr\/pgsql-9.6\/bin/' ~/.bash_profile
+source ~/.bash_profile
 
 #########################################################################################
 #########################################################################################
@@ -181,6 +188,12 @@ python3 -m pip install faker
 python3 -m pip install boto3
 
 pip3 install psycopg2-binary
+
+#########################################################################################
+#########################################################################################
+#  echo these variables into pgadmin4 setup
+export pgadmin_email="admin@example.com"
+export pgadmin_pwd="admin@example.com"
 
 #########################################################################################
 #########################################################################################
