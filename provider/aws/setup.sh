@@ -31,6 +31,9 @@ if [ getenforce != Disabled ]
 then  setenforce 0;
 fi
 
+sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+sed -i 's/SELINUX=permissive/SELINUX=disabled/g' /etc/selinux/config
+
 ln -sf /usr/share/zoneinfo/$LOCAL_TIMEZONE /etc/localtime
 
 ## turn off Transparent Huge pages
@@ -161,6 +164,11 @@ chown -R apache:apache /var/lib/pgadmin4
 
 # restart webserver
 systemctl restart httpd
+
+# after restart ensure permission still good
+chown -R apache:apache /var/log/pgadmin4
+chown -R apache:apache /var/lib/pgadmin4
+
 
 #########################################################################################
 #########################################################################################
