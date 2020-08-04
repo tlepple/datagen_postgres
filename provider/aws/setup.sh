@@ -133,7 +133,7 @@ mkdir -p /tmp/datagen
 cp /root/datagen_postgres/provider/aws/datagen_items.sql /tmp/datagen/
 chmod 777 -R /tmp/datagen/
 cd /tmp/datagen
-#sudo -u datagen psql -d datagen -U datagen -f /tmp/datagen/datagen_items.sql
+sudo -u datagen psql -d datagen -U datagen -f /tmp/datagen/datagen_items.sql
 
 #change back to the diretory
 cd /root/datagen_postgres/provider/aws/
