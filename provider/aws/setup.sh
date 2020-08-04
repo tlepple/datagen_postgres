@@ -27,6 +27,19 @@ PRIVATE_IP=`ip route get 1 | awk '{print $NF;exit}'`
 PUBLIC_IP=`curl https://api.ipify.org/`
 
 ###########################################################################################################
+#  create an osuser datagen
+###########################################################################################################
+
+useradd datagen
+
+echo supersecret1 > passwd.txt
+echo supersecret1 >> passwd.txt
+
+passwd datagen < passwd.txt
+
+rm -f passwd.txt
+
+###########################################################################################################
 #  Setup some prereqs
 ###########################################################################################################
 
@@ -120,7 +133,7 @@ mkdir -p /tmp/datagen
 cp /root/datagen_postgres/provider/aws/datagen_items.sql /tmp/datagen/
 chmod 777 -R /tmp/datagen/
 cd /tmp/datagen
-sudo -u postgres psql -d datagen -f /tmp/datagen/datagen_items.sql
+#sudo -u datagen psql -d datagen -U datagen -f /tmp/datagen/datagen_items.sql
 
 #change back to the diretory
 cd /root/datagen_postgres/provider/aws/
