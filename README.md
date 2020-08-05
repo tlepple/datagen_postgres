@@ -5,6 +5,7 @@
 ## Notes:
 *  Pgadmin4 will be installed but the below steps are required to complete the setup from the cli.
 *  After you ssh into the node run these steps.
+*  Please use this repo to automate the Cloud instance --> [Cloud Node](https://github.com/tlepple/datagen_cloud_env)
 
 ```
 sudo -i
