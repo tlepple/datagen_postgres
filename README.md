@@ -34,4 +34,10 @@ Retype password: Admin1234
 #  Access from browser
 http://<public ip host>/pgadmin4
 
+# Restart apache
+systemctl restart httpd
+
+# Reset permissions:
+chown -R apache:apache /var/log/pgadmin4
+chown -R apache:apache /var/lib/pgadmin4
 
